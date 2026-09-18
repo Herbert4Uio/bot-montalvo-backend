@@ -1,0 +1,48 @@
+# compiled output
+/dist
+/node_modules
+/coverage
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# OS metadata
+.DS_Store
+Thumbs.db
+
+# Env files
+.env
+.env.test
+.env*.local
+
+# Prisma
+# Ignorar bases de datos SQLite locales (si aplicara)
+/prisma/*.db
+/prisma/*.db-journal
+
+# Baileys / WhatsApp Auth (Sesiones antiguas o locales)
+/sessions
+auth_info_baileys/
+baileys_auth_info/
+
+# Editor directories and files
+.idea
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# NestJS specific
+.nest/

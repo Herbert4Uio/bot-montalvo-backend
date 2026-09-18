@@ -1,0 +1,68 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Tenant {
+  id           String   @id @default(uuid())
+  name         String
+  systemPrompt String?  // Definirá el comportamiento del chatbot para esta empresa
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  customers    Customer[]
+  messageLogs  MessageLog[]
+  users        User[]
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  role      String   // "SUPERADMIN" | "TENANT_ADMIN"
+  tenantId  String?
+  tenant    Tenant?  @relation(fields: [tenantId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Customer {
+  id           String   @id @default(uuid())
+  phone        String
+  profileName  String?
+  tenantId     String
+  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  messageLogs  MessageLog[]
+
+  // Un mismo número de teléfono puede ser cliente de varias empresas (tenants)
+  @@unique([phone, tenantId])
+}
+
+model MessageLog {
+  id         String   @id @default(uuid())
+  role       String   // "USER" | "ASSISTANT" | "SYSTEM"
+  content    String
+  customerId String
+  tenantId   String
+  createdAt  DateTime @default(now())
+
+  customer   Customer @relation(fields: [customerId], references: [id])
+  tenant     Tenant   @relation(fields: [tenantId], references: [id])
+}
+
+model BaileysAuth {
+  id        String   @id @default(uuid())
+  tenantId  String   
+  sessionId String   
+  authData  String   @db.Text 
+
+  @@unique([tenantId, sessionId])
+  @@index([tenantId])
+}
