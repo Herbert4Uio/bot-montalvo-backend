@@ -42,4 +42,19 @@ export class CustomerService {
       throw error;
     }
   }
+
+  /**
+   * Obtiene todos los clientes de un tenant ordenados por su última actualización (último mensaje)
+   */
+  async getCustomersByTenant(tenantId: string): Promise<Customer[]> {
+    try {
+      return await this.prisma.customer.findMany({
+        where: { tenantId },
+        orderBy: { updatedAt: 'desc' },
+      });
+    } catch (error) {
+      this.logger.error(`Error obteniendo clientes para el tenant ${tenantId}:`, error);
+      throw error;
+    }
+  }
 }

@@ -3,6 +3,7 @@ import { ApiTags, ApiOperation, ApiParam } from '@nestjs/swagger';
 import { SessionManagerService } from '../whatsapp/session-manager.service';
 import { StateMachineService, UserStateEnum } from './state-machine.service';
 import { MessageLogService } from './message-log.service';
+import { CustomerService } from '../customer/customer.service';
 import { JwtAuthGuard } from '../core/guards/jwt-auth.guard';
 
 export class SendMessageDto {
@@ -19,6 +20,7 @@ export class ChatController {
     private readonly sessionManager: SessionManagerService,
     private readonly stateMachine: StateMachineService,
     private readonly messageLog: MessageLogService,
+    private readonly customerService: CustomerService,
   ) {}
 
   @Post('send')
@@ -43,6 +45,13 @@ export class ChatController {
   @ApiParam({ name: 'customerPhone', required: true })
   async getHistory(@Param('tenantId') tenantId: string, @Param('customerPhone') customerPhone: string) {
     return this.messageLog.getHistoryByPhone(tenantId, customerPhone);
+  }
+
+  @Get('customers/:tenantId')
+  @ApiOperation({ summary: 'Obtiene todos los clientes históricos de un tenant' })
+  @ApiParam({ name: 'tenantId', required: true })
+  async getCustomers(@Param('tenantId') tenantId: string) {
+    return this.customerService.getCustomersByTenant(tenantId);
   }
 
   @Post('clear/:tenantId')
