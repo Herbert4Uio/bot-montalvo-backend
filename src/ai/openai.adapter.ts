@@ -17,7 +17,7 @@ export class OpenAiAdapterService implements AiProviderInterface {
     this.logger.log(`OpenAI request enviado con ${messages.length} mensajes de contexto.`);
     try {
       const response = await this.openai.chat.completions.create({
-        model: 'gpt-3.5-turbo', // configurable según el CRM
+        model: 'gpt-4o-mini', // configurable según el CRM
         messages: messages,
         temperature: 0.7,
       });
