@@ -216,6 +216,16 @@ export class SessionManagerService implements OnModuleInit, OnModuleDestroy {
             const remoteJid = msg.key.remoteJid!;
             const customerPhone = remoteJid.split('@')[0];
             
+            let customerPhoneReal: string | undefined;
+            if (remoteJid.includes('@lid')) {
+              const pnjid = (msg.key as any).remoteJidAlt || (msg.key as any).participantAlt;
+              if (pnjid && typeof pnjid === 'string') {
+                customerPhoneReal = pnjid.split('@')[0].split(':')[0];
+              }
+            } else {
+              customerPhoneReal = customerPhone.split(':')[0];
+            }
+            
             // Guardar mapeo de JID real para poder responderle después si es @lid
             this.phoneToJidMap.set(`${tenantId}:${customerPhone}`, remoteJid);
 
@@ -225,6 +235,7 @@ export class SessionManagerService implements OnModuleInit, OnModuleDestroy {
               tenantId,
               customerId: customerPhone,
               customerPhone,
+              customerPhoneReal,
               customerJid: remoteJid, // Guardar el JID original exacto para responder
               customerProfileName: msg.pushName || undefined,
               text,

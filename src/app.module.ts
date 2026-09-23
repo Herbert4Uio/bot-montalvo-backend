@@ -9,9 +9,11 @@ import { AiModule } from './ai/ai.module';
 import { TenantModule } from './tenant/tenant.module';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
+import { TagModule } from './tag/tag.module';
+import { CrmModule } from './crm/crm.module';
 
 @Module({
-  imports: [CoreModule, WhatsappModule, CustomerModule, AiModule, BotModule, TenantModule, UsersModule, AuthModule],
+  imports: [CoreModule, WhatsappModule, CustomerModule, AiModule, BotModule, TenantModule, UsersModule, AuthModule, TagModule, CrmModule],
   controllers: [AppController],
   providers: [AppService],
 })

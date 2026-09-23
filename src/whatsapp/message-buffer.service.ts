@@ -8,6 +8,7 @@ export interface IncomingMessagePayload {
   tenantId: string;
   customerId: string;
   customerPhone: string;
+  customerPhoneReal?: string;
   customerJid?: string;
   customerProfileName?: string;
   text: string;
@@ -22,6 +23,7 @@ export class MessageBufferService implements OnModuleInit, OnModuleDestroy {
     tenantId: string;
     customerId: string;
     customerPhone: string;
+    customerPhoneReal?: string;
     customerJid?: string;
     customerProfileName?: string;
     messages: string[];
@@ -54,6 +56,7 @@ export class MessageBufferService implements OnModuleInit, OnModuleDestroy {
           tenantId: first.tenantId,
           customerId: first.customerId,
           customerPhone: first.customerPhone,
+          customerPhoneReal: first.customerPhoneReal,
           customerJid: first.customerJid,
           customerProfileName: first.customerProfileName,
           messages: bufferedMessages.map((m) => m.text),

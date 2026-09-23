@@ -31,7 +31,8 @@ export class MessageProcessorService implements OnModuleInit {
         const customer = await this.customerService.upsertCustomer(
           payload.tenantId,
           payload.customerPhone,
-          payload.customerProfileName
+          payload.customerProfileName,
+          payload.customerPhoneReal
         );
 
         // Actualizamos el payload con el ID real de la base de datos (UUID)

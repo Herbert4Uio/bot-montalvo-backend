@@ -17,6 +17,7 @@ model Tenant {
   customers    Customer[]
   messageLogs  MessageLog[]
   users        User[]
+  tags         Tag[]
 }
 
 model User {
@@ -36,6 +37,15 @@ model Customer {
   profileName  String?
   tenantId     String
   tenant       Tenant   @relation(fields: [tenantId], references: [id])
+  
+  // CRM Fields
+  pipelineStage   String  @default("NUEVO LEAD")
+  notes           String? @db.Text
+  tags            Tag[]
+  phoneNumberReal String?
+  dealTitle       String?
+  dealValue       Float?
+
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -43,6 +53,21 @@ model Customer {
 
   // Un mismo número de teléfono puede ser cliente de varias empresas (tenants)
   @@unique([phone, tenantId])
+}
+
+model Tag {
+  id        String   @id @default(uuid())
+  name      String
+  color     String   // e.g. tailwind class or hex
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  
+  customers Customer[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([name, tenantId])
 }
 
 model MessageLog {

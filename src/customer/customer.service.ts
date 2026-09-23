@@ -17,8 +17,12 @@ export class CustomerService {
     tenantId: string,
     phone: string,
     profileName?: string,
+    phoneNumberReal?: string,
   ): Promise<Customer> {
     try {
+      const updateData: any = { profileName: profileName || undefined };
+      if (phoneNumberReal) updateData.phoneNumberReal = phoneNumberReal;
+
       const customer = await this.prisma.customer.upsert({
         where: {
           phone_tenantId: {
@@ -26,13 +30,12 @@ export class CustomerService {
             tenantId,
           },
         },
-        update: {
-          profileName: profileName || undefined,
-        },
+        update: updateData,
         create: {
           phone,
           tenantId,
           profileName,
+          phoneNumberReal,
         },
       });
 
@@ -50,6 +53,7 @@ export class CustomerService {
     try {
       return await this.prisma.customer.findMany({
         where: { tenantId },
+        include: { tags: true },
         orderBy: { updatedAt: 'desc' },
       });
     } catch (error) {
