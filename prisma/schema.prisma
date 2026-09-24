@@ -45,6 +45,7 @@ model Customer {
   phoneNumberReal String?
   dealTitle       String?
   dealValue       Float?
+  chatStatus      String  @default("BOT") // BOT | HUMAN | CLOSED
 
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt

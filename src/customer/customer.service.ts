@@ -61,4 +61,26 @@ export class CustomerService {
       throw error;
     }
   }
+
+  /**
+   * Actualiza el estado de la bandeja de entrada para un cliente específico
+   */
+  async updateChatStatus(tenantId: string, phone: string, status: string): Promise<Customer> {
+    try {
+      return await this.prisma.customer.update({
+        where: {
+          phone_tenantId: {
+            phone,
+            tenantId,
+          },
+        },
+        data: {
+          chatStatus: status,
+        },
+      });
+    } catch (error) {
+      this.logger.error(`Error actualizando chatStatus a ${status} para ${phone}:`, error);
+      throw error;
+    }
+  }
 }

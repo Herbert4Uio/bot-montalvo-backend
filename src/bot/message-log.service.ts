@@ -37,4 +37,15 @@ export class MessageLogService {
       where: { tenantId }
     });
   }
+
+  async clearHistoryByPhone(tenantId: string, phone: string) {
+    const customer = await this.prisma.customer.findUnique({
+      where: { phone_tenantId: { phone, tenantId } }
+    });
+    if (!customer) return;
+    
+    return this.prisma.messageLog.deleteMany({
+      where: { customerId: customer.id, tenantId }
+    });
+  }
 }

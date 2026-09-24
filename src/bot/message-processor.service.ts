@@ -44,13 +44,13 @@ export class MessageProcessorService implements OnModuleInit {
         const route = this.regexRouter.evaluate(payload.fullText);
         if (route.matched) {
           this.logger.log(`Comando rápido detectado. Acción: ${route.action}`);
-          this.handleQuickCommand(payload.tenantId, payload.customerId, route.action);
+          await this.handleQuickCommand(payload.tenantId, payload.customerId, payload.customerPhone, route.action);
           return;
         }
 
         const currentState = this.stateMachine.getState(
           payload.tenantId,
-          payload.customerId,
+          payload.customerPhone,
         );
 
         // 4. Lógica basada en estados
@@ -63,7 +63,7 @@ export class MessageProcessorService implements OnModuleInit {
           case UserStateEnum.AI_CHAT:
           default:
             this.logger.log(`Derivando a IA (Fase 4) - ${payload.customerPhone}`);
-            this.stateMachine.setState(payload.tenantId, payload.customerId, UserStateEnum.AI_CHAT);
+            this.stateMachine.setState(payload.tenantId, payload.customerPhone, UserStateEnum.AI_CHAT);
             
             let systemPrompt = "Eres un asistente virtual amable. Responde de forma concisa.";
             try {
@@ -102,18 +102,22 @@ export class MessageProcessorService implements OnModuleInit {
     });
   }
 
-  private handleQuickCommand(tenantId: string, customerId: string, action?: string) {
+  private async handleQuickCommand(tenantId: string, customerId: string, customerPhone: string, action?: string) {
     switch (action) {
       case 'END_CHAT':
-        this.stateMachine.setState(tenantId, customerId, UserStateEnum.IDLE);
+        this.stateMachine.setState(tenantId, customerPhone, UserStateEnum.IDLE);
         // Aquí llamaríamos a Baileys para enviar un mensaje de despedida
         break;
       case 'TRANSFER_TO_HUMAN':
-        this.stateMachine.setState(tenantId, customerId, UserStateEnum.HUMAN_TRANSFER);
-        // Aquí llamaríamos a Baileys para notificar que un humano lo atenderá
+        this.stateMachine.setState(tenantId, customerPhone, UserStateEnum.HUMAN_TRANSFER);
+        await this.customerService.updateChatStatus(tenantId, customerPhone, 'HUMAN');
+        
+        // Notificar en whatsapp que un humano atenderá
+        await this.sessionManager.sendMessage(tenantId, customerPhone, "Te estamos transfiriendo con nuestro equipo de soporte humano. En breve te atenderán.");
+        await this.messageLog.logMessage(tenantId, customerId, 'SYSTEM', "Te estamos transfiriendo con nuestro equipo de soporte humano. En breve te atenderán.");
         break;
       case 'SEND_MENU':
-        this.stateMachine.setState(tenantId, customerId, UserStateEnum.MENU);
+        this.stateMachine.setState(tenantId, customerPhone, UserStateEnum.MENU);
         // Aquí llamaríamos a Baileys para enviar opciones deterministas
         break;
     }
