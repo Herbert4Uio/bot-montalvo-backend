@@ -63,6 +63,32 @@ export class CrmService {
     });
   }
 
+  async createContact(tenantId: string, data: any) {
+    return this.prisma.customer.create({
+      data: {
+        tenantId,
+        phone: data.phone,
+        profileName: data.profileName,
+        phoneNumberReal: data.phoneNumberReal,
+        notes: data.notes,
+        chatStatus: 'BOT',
+        tags: data.tagIds ? { connect: data.tagIds.map((id: string) => ({ id })) } : undefined,
+      },
+      include: { tags: true }
+    });
+  }
+
+  async deleteContact(tenantId: string, id: string) {
+    // Delete associated message logs first to avoid foreign key constraint errors
+    await this.prisma.messageLog.deleteMany({
+      where: { customerId: id, tenantId }
+    });
+    // Delete customer
+    return this.prisma.customer.delete({
+      where: { id, tenantId }
+    });
+  }
+
   async updateContact(
     tenantId: string, 
     customerId: string, 
