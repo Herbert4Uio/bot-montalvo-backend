@@ -324,7 +324,7 @@ export class SessionManagerService implements OnModuleInit, OnModuleDestroy {
     return this.statuses.get(tenantId) || { status: 'DISCONNECTED' };
   }
 
-  async sendMessage(tenantId: string, toPhone: string, text: string): Promise<void> {
+  async sendMessage(tenantId: string, toPhone: string, text: string, imageBuffer?: Buffer): Promise<void> {
     const socket = this.sockets.get(tenantId);
     if (!socket) {
       this.logger.warn(`No hay socket activo para Tenant ${tenantId}. No se pudo enviar el mensaje.`);
@@ -338,7 +338,11 @@ export class SessionManagerService implements OnModuleInit, OnModuleDestroy {
         jid = toPhone.includes('@') ? toPhone : `${toPhone}@s.whatsapp.net`;
       }
       
-      await socket.sendMessage(jid, { text });
+      if (imageBuffer) {
+        await socket.sendMessage(jid, { image: imageBuffer, caption: text });
+      } else {
+        await socket.sendMessage(jid, { text });
+      }
       this.logger.log(`Mensaje enviado a ${jid} desde Tenant ${tenantId}`);
     } catch (error) {
       this.logger.error(`Error enviando mensaje a ${toPhone} desde Tenant ${tenantId}:`, error);

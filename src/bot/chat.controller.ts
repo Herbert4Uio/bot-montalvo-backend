@@ -1,5 +1,6 @@
-import { Controller, Post, Body, Param, Get, UseGuards } from '@nestjs/common';
-import { IsString, IsNotEmpty } from 'class-validator';
+import { Controller, Post, Body, Param, Get, UseGuards, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
 import { ApiTags, ApiOperation, ApiParam } from '@nestjs/swagger';
 import { SessionManagerService } from '../whatsapp/session-manager.service';
 import { StateMachineService, UserStateEnum } from './state-machine.service';
@@ -17,8 +18,8 @@ export class SendMessageDto {
   customerPhone: string;
 
   @IsString()
-  @IsNotEmpty()
-  message: string;
+  @IsOptional()
+  message?: string;
 }
 
 export class SetStatusDto {
@@ -47,9 +48,27 @@ export class ChatController {
   ) {}
 
   @Post('send')
+  @UseInterceptors(FileInterceptor('image', {
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB max
+    fileFilter: (req, file, cb) => {
+      if (file.mimetype.match(/\/(jpg|jpeg|png|gif|webp)$/)) {
+        cb(null, true);
+      } else {
+        cb(new Error('Formato de imagen no soportado'), false);
+      }
+    }
+  }))
   @ApiOperation({ summary: 'Envía un mensaje manual y toma control de la conversación' })
-  async sendManualMessage(@Body() body: SendMessageDto) {
-    const { tenantId, customerPhone, message } = body;
+  async sendManualMessage(
+    @Body() body: SendMessageDto,
+    @UploadedFile() image?: Express.Multer.File
+  ) {
+    const { tenantId, customerPhone, message = '' } = body;
+
+    // Si no hay mensaje y no hay imagen, rechazar
+    if (!message && !image) {
+      return { success: false, error: 'Debe enviar un mensaje o una imagen' };
+    }
 
     // Pausar IA
     this.stateMachine.setState(tenantId, customerPhone, UserStateEnum.HUMAN_TRANSFER);
@@ -57,10 +76,11 @@ export class ChatController {
     // Cambiar estado de bandeja a HUMAN
     const customer = await this.customerService.updateChatStatus(tenantId, customerPhone, 'HUMAN');
 
-    await this.sessionManager.sendMessage(tenantId, customerPhone, message);
+    await this.sessionManager.sendMessage(tenantId, customerPhone, message, image?.buffer);
     
     // Registrar mensaje del humano
-    await this.messageLog.logMessage(tenantId, customer.id, 'ADMIN', message);
+    const logContent = image ? `[Imagen enviada] ${message}`.trim() : message;
+    await this.messageLog.logMessage(tenantId, customer.id, 'ADMIN', logContent);
 
     return { success: true, status: 'Control humano asumido' };
   }
