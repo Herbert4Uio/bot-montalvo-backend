@@ -335,15 +335,63 @@ export class SessionManagerService implements OnModuleInit, OnModuleDestroy {
       // Buscar el JID real en caché, o usar un default
       let jid = this.phoneToJidMap.get(`${tenantId}:${toPhone}`);
       if (!jid) {
-        jid = toPhone.includes('@') ? toPhone : `${toPhone}@s.whatsapp.net`;
+        // Si no está en caché (ej: se reinició el servidor), consultamos la BD
+        try {
+          const customer = await this.prisma.customer.findFirst({
+            where: { tenantId, phone: toPhone }
+          });
+          // Si el cliente existe y tiene un phoneNumberReal diferente a su phone (LID), es un @lid
+          if (customer && customer.phoneNumberReal && customer.phoneNumberReal !== toPhone) {
+            jid = `${toPhone}@lid`;
+          } else {
+            jid = toPhone.includes('@') ? toPhone : `${toPhone}@s.whatsapp.net`;
+          }
+          this.phoneToJidMap.set(`${tenantId}:${toPhone}`, jid); // Restaurar en caché
+        } catch (e) {
+          jid = toPhone.includes('@') ? toPhone : `${toPhone}@s.whatsapp.net`;
+        }
       }
       
       if (imageBuffer) {
-        await socket.sendMessage(jid, { image: imageBuffer, caption: text });
+        this.logger.log(`[Baileys] Preparando envío de imagen a ${jid} (Tamaño: ${imageBuffer.length} bytes)`);
+        
+        // Es preferible usar un stream o URL físico para evitar crashes en Baileys
+        const fs = require('fs');
+        const path = require('path');
+        const { v4: uuidv4 } = require('uuid');
+        
+        const tempDir = path.join(process.cwd(), 'tmp');
+        if (!fs.existsSync(tempDir)) {
+          fs.mkdirSync(tempDir, { recursive: true });
+        }
+        
+        const tempFilePath = path.join(tempDir, `${uuidv4()}.jpg`);
+        fs.writeFileSync(tempFilePath, imageBuffer);
+        
+        this.logger.log(`[Baileys] Imagen guardada en disco temporalmente: ${tempFilePath}`);
+        
+        // Enviar usando el URL local
+        try {
+          await socket.sendMessage(jid, { 
+            image: { url: tempFilePath }, 
+            caption: text || '' // Asegurar que sea string
+          });
+          this.logger.log(`[Baileys] Imagen enviada a ${jid} desde Tenant ${tenantId} exitosamente.`);
+        } finally {
+          // Eliminar archivo temporal después del envío para ahorrar espacio
+          try {
+            if (fs.existsSync(tempFilePath)) {
+              fs.unlinkSync(tempFilePath);
+              this.logger.log(`[Baileys] Archivo temporal eliminado: ${tempFilePath}`);
+            }
+          } catch (e) {
+            this.logger.warn(`[Baileys] No se pudo eliminar el archivo temporal ${tempFilePath}`);
+          }
+        }
       } else {
-        await socket.sendMessage(jid, { text });
+        await socket.sendMessage(jid, { text: text || '' });
+        this.logger.log(`Mensaje de texto enviado a ${jid} desde Tenant ${tenantId}`);
       }
-      this.logger.log(`Mensaje enviado a ${jid} desde Tenant ${tenantId}`);
     } catch (error) {
       this.logger.error(`Error enviando mensaje a ${toPhone} desde Tenant ${tenantId}:`, error);
     }

@@ -34,6 +34,9 @@ export class SetStatusDto {
   @IsString()
   @IsNotEmpty()
   status: string;
+
+  @IsOptional()
+  clearMemory?: boolean;
 }
 
 @ApiTags('Chat en Vivo (CRM)')
@@ -63,6 +66,8 @@ export class ChatController {
     @Body() body: SendMessageDto,
     @UploadedFile() image?: Express.Multer.File
   ) {
+    console.log('[DEBUG] body:', body);
+    console.log('[DEBUG] image file size:', image?.size, 'buffer length:', image?.buffer?.length, 'mimetype:', image?.mimetype);
     const { tenantId, customerPhone, message = '' } = body;
 
     // Si no hay mensaje y no hay imagen, rechazar
@@ -88,15 +93,17 @@ export class ChatController {
   @Post('status')
   @ApiOperation({ summary: 'Cambia el estado de la conversación (BOT, HUMAN, CLOSED)' })
   async setStatus(@Body() body: SetStatusDto) {
-    const { tenantId, customerPhone, status } = body;
+    const { tenantId, customerPhone, status, clearMemory = true } = body;
 
     // Actualizar DB
     await this.customerService.updateChatStatus(tenantId, customerPhone, status);
 
     // Actualizar máquina de estados
     if (status === 'BOT') {
-      // Limpiar memoria
-      await this.messageLog.clearHistoryByPhone(tenantId, customerPhone);
+      // Limpiar memoria solo si clearMemory es true
+      if (clearMemory) {
+        await this.messageLog.clearHistoryByPhone(tenantId, customerPhone);
+      }
       this.stateMachine.setState(tenantId, customerPhone, UserStateEnum.IDLE);
     } else if (status === 'HUMAN') {
       this.stateMachine.setState(tenantId, customerPhone, UserStateEnum.HUMAN_TRANSFER);
